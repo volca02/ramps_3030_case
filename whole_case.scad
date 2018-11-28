@@ -63,7 +63,7 @@ snap_bottom_z = 20;
 snap_top_z    = height -30;
 snap_hook_height = 10;
 snap_base_height = 15; // base to side panels hole-peg mount
-snap_dt = 0.4;
+snap_dt = 0.6;
 snap_hook_notch = 1;
 snap_hook_extens = 1.6*snap_hook_notch;
 snap_spring_slot_h = 0.8;
@@ -73,7 +73,6 @@ snap_hook_right = width - 10 - snap_hook_height;
 
 // ------------------------------------------------------------------------------------
 boxDemo();
-//cableGuards(true);
 // ------------------------------------------------------------------------------------
 
 // lid();
@@ -87,6 +86,7 @@ module boxDemo() {
     right_panel();
     left_panel();
     translate([0,depth+2.2*wall,0]) lid();
+    cableGuards(true);
 }
 
 module cableGuard(rad) {
@@ -252,15 +252,15 @@ module snap_peg(h, bottom_peg) {
 }
 module snap_pegs() {
     // top one has no slot in it cut, so it has to pass through with the peg
-    translate([0,snap_top_y+snap_hook_notch,0]) snap_peg(snap_hook_height - snap_hook_notch, false);
+    translate([0,snap_top_y + snap_hook_notch,0]) snap_peg(snap_hook_height, true);
     // bottom one will be springy
-    translate([0,snap_bottom_y,0]) snap_peg(snap_hook_height, true);
+    translate([0,snap_bottom_y,0]) snap_peg(snap_hook_height - snap_hook_notch, true);
 }
 
 // we don't place the spring slot near the edge enough to have thin enough wall for a spring, so we make two holes to make it springy
 module snap_spring_slot() {
-    translate([0,snap_bottom_y + snap_hook_height/2, - snap_hook_extens ]) cube([wall, snap_spring_slot_h, snap_spring_slot_extens]);
-    translate([0,snap_bottom_y - snap_spring_slot_h, - snap_hook_extens ]) cube([wall, snap_spring_slot_h, snap_spring_slot_extens]);
+    translate([-delta,snap_top_y + snap_hook_height/2, - snap_hook_extens - delta]) cube([wall+2*delta, snap_spring_slot_h, snap_spring_slot_extens]);
+    translate([-delta,snap_top_y + snap_hook_height + snap_spring_slot_h, - snap_hook_extens + snap_hook_notch]) cube([wall+2*delta, snap_spring_slot_h, snap_spring_slot_extens - snap_hook_notch]);
 }
 
 module top_panel() {
@@ -307,8 +307,8 @@ module right_panel() {
                 translate([-delta, cable_out_h, cable_out_side_right_z]) rotate([0,90,0]) cylinder(d=cable_m_rad, h=wall+2*delta);
                 
                 // slide - in holes where the 3030 mount is
-                translate([-delta,-extens,mount_bottom_offset -profile - wall - snap_dt/2]) cube([wall+2*delta, extens + 2*wall, profile + snap_dt]);
-                translate([-delta,-extens,mount_top_offset    -profile - wall - snap_dt/2]) cube([wall+2*delta, extens + 2*wall, profile + snap_dt]);
+                translate([-delta,-extens-delta,mount_bottom_offset -profile - wall - snap_dt/2]) cube([wall+2*delta, extens + 2*wall, profile + snap_dt]);
+                translate([-delta,-extens-delta,mount_top_offset    -profile - wall - snap_dt/2]) cube([wall+2*delta, extens + 2*wall, profile + snap_dt]);
                 
                 
             }
