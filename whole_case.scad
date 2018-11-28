@@ -20,7 +20,7 @@ mount_height = 9;
 usb_w = 14;
 usb_h = 13;
 
-mega_x = 10;
+mega_x = 5;
 mega_y = 4;
 usb_x = mega_x + 6;
 usb_y = wall + mount_height + 2.5 - 1; // 2.5 is board width, 1 mm is the margin
@@ -29,14 +29,15 @@ fan_mnt_hole = 3;
 
 // we need less, but we're leving room for the fit inserts
 cable_x_rad = 14;
-cable_y_rad = 8;
+cable_y_rad = 9;
+cable_m_rad = 12;
 
-cable_out_h = 45;
-cable_out_top_x = width - cable_x_rad + wall;
+cable_out_h = 49;
+cable_out_top_x = width - cable_x_rad + 3 * wall;
 cable_out_side_left_z = 55;
-cable_out_side_right_z = 38;
+cable_out_side_right_z = 44;
 
-mount_bottom_offset = 10;
+mount_bottom_offset = 25;
 
 // top duct width/height
 top_duct_x = 2 * wall; 
@@ -132,11 +133,11 @@ module cableGuards(demo) {
     if (demo) {
         translate([cable_out_top_x, cable_out_h, height+wall]) cableGuard(cable_x_rad);
         translate([width+wall, cable_out_h, cable_out_side_left_z]) rotate([0,90,0]) cableGuard(cable_y_rad);
-        translate([wall, cable_out_h, cable_out_side_right_z]) rotate([180,90,0]) cableGuard(cable_y_rad);
+        translate([wall, cable_out_h, cable_out_side_right_z]) rotate([180,90,0]) cableGuard(cable_m_rad);
     } else {
         translate([0,0,3*wall]) rotate([180,0,0]) cableGuard(cable_x_rad);
         translate([cable_x_rad * 2,0,3*wall]) rotate([180,0,0]) cableGuard(cable_y_rad);
-        translate([-cable_x_rad * 2,0,3*wall]) rotate([180,0,0]) cableGuard(cable_y_rad);
+        translate([-cable_x_rad * 2,0,3*wall]) rotate([180,0,0]) cableGuard(cable_m_rad);
     }
 }
 
@@ -164,6 +165,10 @@ module megaMountHoles() {
         
         // ramps board
         %translate([0,-2,2.5+13]) cube([53.3,106.6,2]);
+        
+        // ramps board top mounted sockets
+        %translate([24,-2+5,2.5+13+2.5]) cube([25,8,20]);
+        %translate([4,-2+5,2.5+13+2.5]) cube([18,8,15]);
         
         // smart ctl daughterboard
         %translate([0,101.6-6,2.5+26]) cube([53.3,15,2]);
@@ -200,7 +205,9 @@ module rampsBox() {
             translate([width+wall - delta, cable_out_h, cable_out_side_left_z]) rotate([0,90,0]) cylinder(d=cable_y_rad, h=wall+2*delta);
             
             // through hole for the X motor
-            translate([-delta, cable_out_h, cable_out_side_right_z]) rotate([0,90,0]) cylinder(d=cable_y_rad, h=wall+2*delta);
+            translate([-delta, cable_out_h, cable_out_side_right_z]) rotate([0,90,0]) cylinder(d=cable_m_rad, h=wall+2*delta);
+
+            
 
             // control box cables + power - in
             translate([10, 2*wall + depth - 12, -delta]) cube([width - 2*10 + 2*wall,12+delta,wall+2*delta]);
