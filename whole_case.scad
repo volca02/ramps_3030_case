@@ -215,8 +215,8 @@ module topbottom_snap_holes() {
     translate([width+wall-snap_dt/2,snap_bottom_y,-delta]) cube([wall+snap_dt,snap_hook_height+snap_dt, wall+2*delta]);
     translate([width+wall-snap_dt/2,snap_top_y,-delta]) cube([wall+snap_dt,snap_hook_height+snap_dt, wall+2*delta]);
     
-    translate([wall+snap_hook_left-snap_dt/2,0,-delta]) cube([snap_hook_height+snap_dt, 2*wall, wall+2*delta]);
-    translate([wall+snap_hook_right-snap_dt/2,0,-delta]) cube([snap_hook_height+snap_dt, 2*wall, wall+2*delta]);
+    translate([wall+snap_hook_left-snap_dt/2,-snap_dt/2,-delta]) cube([snap_hook_height+snap_dt, 2*wall + snap_dt, wall+2*delta]);
+    translate([wall+snap_hook_right-snap_dt/2,-snap_dt/2,-delta]) cube([snap_hook_height+snap_dt, 2*wall + snap_dt, wall+2*delta]);
 }
 
 // side snap holes
