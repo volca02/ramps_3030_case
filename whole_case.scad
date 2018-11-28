@@ -33,8 +33,10 @@ cable_y_rad = 8;
 
 cable_out_h = 45;
 cable_out_top_x = width - cable_x_rad + wall;
-cable_out_side_left_z = 48;
+cable_out_side_left_z = 55;
 cable_out_side_right_z = 38;
+
+mount_bottom_offset = 10;
 
 // top duct width/height
 top_duct_x = 2 * wall; 
@@ -42,10 +44,20 @@ top_duct_y = wall + mount_height + usb_h + wall * 3;
 top_duct_width = cable_out_top_x - cable_x_rad / 2 - top_duct_x - 2*wall;
 top_duct_height = depth - top_duct_y;
 
-rampsBox();
-%translate([0,depth+2*wall,0]) lid();
-cableGuards(true);
+// snap-in notch
+snap_len = 10;
+snap_width = 8;
+snap_notch = 3;
+snap_offset = 25;
 
+
+// ------------------------------------------------------------------------------------
+rampsBox();
+translate([0,depth+2*wall,0]) lid();
+cableGuards(true);
+// ------------------------------------------------------------------------------------
+
+// lid();
 // megaMountHoles();
 // cableGuards(false);
 
@@ -63,7 +75,7 @@ module cableGuard(rad) {
         translate([0,0,-wall-delta]) cylinder(d=rad - narrowing, h = 4*wall+2*delta);
         
         // split slot to make it forceable
-        translate([rad - 2*narrowing,0,+wall]) cube([2*wall+narrowing,narrowing,4*wall+3*delta],center=true);
+        translate([rad - 2*narrowing,0,+wall]) cube([2*wall+3*narrowing,narrowing,4*wall+3*delta],center=true);
     }
 }
 
@@ -72,14 +84,22 @@ module lidBase(delta) {
     cube([width+2*wall,wall,height+2*wall]);
 }
 
-module fanMount(rad) {
-    // TODO: propper fan span (choose fan)
+module fanMount(rad, delt) {
     span = 50;
-    ox = width / 2 - span / 2 + wall; oy = 30; 
-    translate([ox,wall,oy]) rotate([90,0,0]) cylinder(d=rad,h=wall);
-    translate([ox+span,wall,oy]) rotate([90,0,0]) cylinder(d=rad,h=wall);
-    translate([ox+span,wall,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=wall);
-    translate([ox,wall,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=wall);
+    ox = width / 2 - span / 2 + wall; oy = height-span-30; 
+    translate([ox,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=wall+2*delt);
+    translate([ox+span,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=wall+2*delt);
+    translate([ox+span,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=wall+2*delt);
+    translate([ox,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=wall+2*delt);
+}
+
+module snapIn() {
+    translate([-lip,-snap_len/2,0]) cube([wall,snap_len,snap_width], center=true);
+    translate([-lip-wall/2+snap_notch/2,-snap_len,-snap_width/2]) cylinder(d=snap_notch, h=snap_width);
+}
+
+module snapHole() {
+    translate([-delta,-snap_len + snap_notch/2 + 3*lip,-snap_width/2-lip]) cube([wall+2*delta, snap_notch, snap_width+2*lip]);
 }
 
 // TODO: mounting holes. Add mounting cylinders, then diff out the mounting holes.
@@ -92,12 +112,18 @@ module lid() {
                     translate([3*wall,-delta,x]) cube([width-4*wall,wall+2*delta,wall]);
                 }
             }
-            
+
             // 4 mounting holes
-            fanMount(fan_mnt_hole + 3);
+            fanMount(fan_mnt_hole + 3, 0);
+            
+            // snap-in mounts
+            translate([wall+3*lip,0,snap_offset]) rotate([0,180,0]) snapIn();
+            translate([wall+3*lip,0,height-snap_offset]) rotate([0,180,0]) snapIn();
+            translate([width+wall-3*lip,0,snap_offset]) snapIn();
+            translate([width+wall-3*lip,0,height-snap_offset]) snapIn();
         }
         
-        fanMount(fan_mnt_hole);
+        fanMount(fan_mnt_hole, delta);
     }
 }
 
@@ -155,10 +181,10 @@ module rampsBox() {
     union() {
         difference() {
             union() {    
-                translate([-10,0,profile+25]) rotate([0,90,90]) mount3030();
+                translate([-10,0,profile+mount_bottom_offset]) rotate([0,90,90]) mount3030();
                 translate([-10,0,height]) rotate([0,90,90]) mount3030();
                 body();
-                translate([0,3,25])rotate([0,0,45])cube([2*wall,2*wall,profile]);
+                translate([0,3,mount_bottom_offset])rotate([0,0,45])cube([2*wall,2*wall,profile]);
                 translate([0,3,height-profile])rotate([0,0,45])cube([2*wall,2*wall,profile]);
             }
             
@@ -177,7 +203,13 @@ module rampsBox() {
             translate([-delta, cable_out_h, cable_out_side_right_z]) rotate([0,90,0]) cylinder(d=cable_y_rad, h=wall+2*delta);
 
             // control box cables + power - in
-            translate([10, wall + mount_height + 25, -delta]) cube([width - 2*10 + 2*wall,12,wall+2*delta]);
+            translate([10, 2*wall + depth - 12, -delta]) cube([width - 2*10 + 2*wall,12+delta,wall+2*delta]);
+
+            // snap holes
+            translate([wall,depth,snap_offset]) rotate([0,180,0]) snapHole();
+            translate([wall,depth,height-snap_offset]) rotate([0,180,0]) snapHole();
+            translate([width+wall,depth,snap_offset]) snapHole();
+            translate([width+wall,depth,height-snap_offset]) snapHole();
 
             // air duct out on top
             union() {
