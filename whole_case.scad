@@ -27,7 +27,7 @@ usb_h = 13;
 mega_x = 5;
 mega_y = 4;
 usb_x = mega_x + 6;
-usb_y = 2*wall + mount_height + 2.5 - 1; // 2.5 is board width, 1 mm is the margin
+usb_y = 3*wall + mount_height + 2.5 - 1; // 2.5 is board width, 1 mm is the margin
 
 fan_mnt_hole = 3;
 
@@ -46,7 +46,7 @@ mount_top_offset = height-10;
 
 // top duct width/height
 top_duct_x = 2 * wall; 
-top_duct_y = wall + mount_height + usb_h + wall * 3;
+top_duct_y = 2*wall + mount_height + usb_h + wall * 3;
 top_duct_width = cable_out_top_x - cable_x_rad / 2 - top_duct_x - 2*wall;
 top_duct_height = depth - top_duct_y;
 
