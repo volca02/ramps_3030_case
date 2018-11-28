@@ -156,8 +156,8 @@ module lid() {
 module cableGuards(demo) {
     if (demo) {
         translate([cable_out_top_x, cable_out_h, height+wall]) cableGuard(cable_x_rad);
-        translate([width+wall, cable_out_h, cable_out_side_left_z]) rotate([0,90,0]) cableGuard(cable_y_rad);
-        translate([wall, cable_out_h, cable_out_side_right_z]) rotate([180,90,0]) cableGuard(cable_m_rad);
+        translate([width+wall, cable_out_h, cable_out_side_left_z + wall]) rotate([0,90,0]) cableGuard(cable_y_rad);
+        translate([wall, cable_out_h, cable_out_side_right_z + wall]) rotate([180,90,0]) cableGuard(cable_m_rad);
     } else {
         translate([0,0,3*wall]) rotate([180,0,0]) cableGuard(cable_x_rad);
         translate([cable_x_rad * 2,0,3*wall]) rotate([180,0,0]) cableGuard(cable_y_rad);
