@@ -1,4 +1,15 @@
 // Modified from PSU mount by kumekay
+// use these modules to produce the shapes
+//
+// left_panel
+// right_panel
+// top_panel
+// bottom_panel
+// base
+// lid
+//
+// all modules are oriented as they go together (not in printable orientation)
+
 $fs=0.01;
 profile = 30;
 width = 70;
@@ -71,21 +82,13 @@ snap_spring_slot_extens = 20;
 snap_hook_left = 10;
 snap_hook_right = width - 10 - snap_hook_height;
 
-// ------------------------------------------------------------------------------------
-boxDemo();
-// ------------------------------------------------------------------------------------
-
-// lid();
-// megaMountHoles();
-// cableGuards(false);
-
 module boxDemo() {
     base();
     top_panel();
     bottom_panel();
     right_panel();
     left_panel();
-    translate([0,depth+2.2*wall,0]) lid();
+    lid();
     cableGuards(true);
 }
 
@@ -129,7 +132,7 @@ module lidSnapHole() {
 
 // TODO: mounting holes. Add mounting cylinders, then diff out the mounting holes.
 module lid() {
-    difference() {
+    translate([0,depth+2*wall,0]) difference() {
         union() {
             difference() {
                 translate([-extens,0,0]) cube([width+2*wall+2*extens,wall,height+2*wall]);
