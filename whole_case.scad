@@ -27,9 +27,9 @@ lip = 0.3;
 extens = 6;
 
 // mounting pillars for atmega
-mount_outer  = 6;
-mount_inner  = 2.8;
-mount_height = 6;
+mount_outer  = 8;
+mount_inner  = 3.5;
+mount_height = 7;
 
 // dimensions of the USB hole
 usb_w = 14;
@@ -48,7 +48,9 @@ cable_y_rad = 9;
 cable_m_rad = 12;
 
 cable_out_h = 49;
+cable_out_bottom_h = 29;
 cable_out_top_x = width - cable_x_rad + 3 * wall;
+cable_out_bottom_x = cable_out_top_x;
 cable_out_side_left_z = 55;
 cable_out_side_right_z = 44;
 
@@ -159,10 +161,12 @@ module lid() {
 module cableGuards(demo) {
     if (demo) {
         translate([cable_out_top_x, cable_out_h, height+wall]) cableGuard(cable_x_rad);
+        translate([cable_out_bottom_x, cable_out_bottom_h, wall]) rotate([0,180,0]) cableGuard(cable_x_rad);
         translate([width+wall, cable_out_h, cable_out_side_left_z + wall]) rotate([0,90,0]) cableGuard(cable_y_rad);
         translate([wall, cable_out_h, cable_out_side_right_z + wall]) rotate([180,90,0]) cableGuard(cable_m_rad);
     } else {
         translate([0,0,3*wall]) rotate([180,0,0]) cableGuard(cable_x_rad);
+        translate([cable_x_rad * 4,0,3*wall]) rotate([180,0,0]) cableGuard(cable_x_rad);
         translate([cable_x_rad * 2,0,3*wall]) rotate([180,0,0]) cableGuard(cable_y_rad);
         translate([-cable_x_rad * 2,0,3*wall]) rotate([180,0,0]) cableGuard(cable_m_rad);
     }
@@ -257,7 +261,7 @@ module snap_pegs() {
     // top one has no slot in it cut, so it has to pass through with the peg
     translate([0,snap_top_y + snap_hook_notch,0]) snap_peg(snap_hook_height, true);
     // bottom one will be springy
-    translate([0,snap_bottom_y,0]) snap_peg(snap_hook_height - snap_hook_notch, true);
+    translate([0,snap_bottom_y,0]) snap_peg(snap_hook_height - snap_hook_notch, false);
 }
 
 // we don't place the spring slot near the edge enough to have thin enough wall for a spring, so we make two holes to make it springy
@@ -290,6 +294,10 @@ module top_panel() {
 module bottom_panel() {
     difference() {
         translate([-extens,-extens,0]) cube([width+2*wall+2*extens,depth+2*wall+extens,wall]);
+        
+        // through hole for X axis cable
+        translate([cable_out_top_x, cable_out_bottom_h,-delta]) cylinder(d=cable_x_rad, h=wall+2*delta);
+        
         // ============== bottom panel ===============
         // control box cables + power - in
         translate([10, 2*wall + depth - 12, -delta]) cube([width - 2*10 + 2*wall,12+delta,wall+2*delta]);
@@ -365,8 +373,8 @@ module base() {
                 translate([0,3,mount_top_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);
                 
                 // panel guide pegs on the left side
-                translate([width+wall,0,snap_top_z + wall]) cube([wall, 2*wall, snap_base_height]);
-                translate([width+wall,0,snap_bottom_z + wall]) cube([wall, 2*wall, snap_base_height]);
+                translate([width+wall+snap_dt,0,snap_top_z + wall]) cube([wall, 2*wall, snap_base_height]);
+                translate([width+wall+snap_dt,0,snap_bottom_z + wall]) cube([wall, 2*wall, snap_base_height]);
 
                 // top/bottom panel guides
                 // top
