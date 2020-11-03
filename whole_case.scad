@@ -40,7 +40,7 @@ mega_y = 4;
 usb_x = mega_x + 6;
 usb_y = 3*wall + mount_height + 2.5 - 1; // 2.5 is board width, 1 mm is the margin
 
-fan_mnt_hole = 3;
+fan_mnt_hole = 4.1;
 
 // we need less, but we're leving room for the fit inserts
 cable_x_rad = 14;
@@ -84,13 +84,27 @@ snap_spring_slot_extens = 20;
 snap_hook_left = 10;
 snap_hook_right = width - 10 - snap_hook_height;
 
+// rotate([-90,0,0]) fan_lid();
+boxDemo();
+
+// clip();
+
+// clips the fan mount lid with the wall of the box together for better rigidity
+module clip() {
+    union() {
+        cube([wall*4, wall, 4*wall]);
+        translate([0, wall, 0]) cube([wall, snap_width, snap_width*2]);
+        translate([wall*3, wall, 0]) cube([wall, snap_width, snap_width*2]);
+    };
+}
+
 module boxDemo() {
     base();
     top_panel();
     bottom_panel();
     right_panel();
     left_panel();
-    lid();
+    fan_lid();
     cableGuards(true);
 }
 
@@ -113,17 +127,17 @@ module cableGuard(rad) {
 }
 
 module fanMount(rad, delt) {
-    span = 50;
+    span = 70;
     ox = width / 2 - span / 2 + wall; oy = height-span-30; 
-    translate([ox,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=wall+2*delt);
-    translate([ox+span,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=wall+2*delt);
-    translate([ox+span,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=wall+2*delt);
-    translate([ox,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=wall+2*delt);
+    translate([ox,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=2*wall+2*delt);
+    translate([ox+span,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=2*wall+2*delt);
+    translate([ox+span,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=2*wall+2*delt);
+    translate([ox,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=2*wall+2*delt);
 }
 
 // lid snap-in mount
-module lidSnapIn() {
-    translate([-lip,-snap_len/2,0]) cube([wall,snap_len,snap_width], center=true);
+module lidSnapIn(len) {
+    translate([-lip,len/2-snap_len/2,0]) cube([wall,snap_len+len,snap_width], center=true);
     translate([-lip-wall/2+snap_notch/2,-snap_len,-snap_width/2]) cylinder(d=snap_notch, h=snap_width);
 }
 
@@ -132,10 +146,30 @@ module lidSnapHole() {
     translate([-delta,-snap_len + snap_notch/2 + 3*lip,-snap_width/2-lip]) cube([wall+2*delta, snap_notch, snap_width+2*lip]);
 }
 
-// TODO: mounting holes. Add mounting cylinders, then diff out the mounting holes.
+module frame(w, h, t,d) {
+    t2 = t / 2;
+    union() {
+        translate([-t2,-d,-t2]) cube([w + t, d, t]);
+        translate([-t2,-d,h-t2]) cube([w + t, d, t]);
+        translate([-t2,-d,t2]) cube([t, d, h]);
+        translate([-t2+w,-d,t2]) cube([t, d, h]);
+    }
+}
+
 module lid() {
-    translate([0,depth+2*wall,0]) difference() {
+    // cable management is a nightmare, adding a few centimeters to allow for better cable placement
+    offset = 23;
+    translate([0,depth+offset+3*wall,0]) difference() {
         union() {
+            // a riser frame
+            translate([wall,0,wall]) frame(width, height,2*wall,offset);
+            
+            // adding a cube where the extens are , for looks
+            translate([-extens,-offset,0]) cube([extens, offset, wall]);
+            translate([width+2*wall,-offset,0]) cube([extens, offset, wall]);
+            translate([-extens,-offset,height+wall]) cube([extens, offset, wall]);
+            translate([width+2*wall,-offset,height+wall]) cube([extens, offset, wall]);
+            
             difference() {
                 translate([-extens,0,0]) cube([width+2*wall+2*extens,wall,height+2*wall]);
                 for (x = [4*wall : 2*wall : height-2*wall]) {
@@ -147,13 +181,48 @@ module lid() {
             fanMount(fan_mnt_hole + 3, 0);
             
             // snap-in mounts
-            translate([wall+3*lip,0,snap_offset+wall]) rotate([0,180,0]) lidSnapIn();
-            translate([wall+3*lip,0,height-snap_offset+wall]) rotate([0,180,0]) lidSnapIn();
-            translate([width+wall-3*lip,0,snap_offset+wall]) lidSnapIn();
-            translate([width+wall-3*lip,0,height-snap_offset+wall]) lidSnapIn();
+            translate([wall+3*lip,-offset,snap_offset+wall]) rotate([0,180,0]) lidSnapIn();
+            translate([wall+3*lip,-offset,height-snap_offset+wall]) rotate([0,180,0]) lidSnapIn();
+            translate([width+wall-3*lip,-offset,snap_offset+wall]) lidSnapIn();
+            translate([width+wall-3*lip,-offset,height-snap_offset+wall]) lidSnapIn();
         }
         
         fanMount(fan_mnt_hole, delta);
+    }
+}
+
+// simplified cover that only mounts a bigger 80 mm fan
+module fan_lid() {
+    offset = 1*wall+20;
+    translate([0,depth+offset+3*wall,0]) difference() {
+        union() {
+            // a riser frame
+            translate([0,wall,wall]) frame(width+3*wall, height,2*wall,2*wall);
+            
+            // adding a cube where the extens are , for looks
+            /*translate([-extens,-offset,0]) cube([extens, offset, wall]);
+            translate([width+2*wall,-offset,0]) cube([extens, offset, wall]);
+            translate([-extens,-offset,height+wall]) cube([extens, offset, wall]);
+            translate([width+2*wall,-offset,height+wall]) cube([extens, offset, wall]);
+            
+            /*difference() {
+                translate([-extens,0,0]) cube([width+2*wall+2*extens,wall,height+2*wall]);*/
+            for (x = [2*wall : 5*wall : height-2*wall]) {
+                    translate([1*wall,-wall,x]) cube([width+wall,2*wall,2*wall]);
+            }
+            /*}*/
+
+            // 4 mounting holes
+            translate([wall/2,0,0]) fanMount(fan_mnt_hole + 8, 0);
+            
+            // snap-in mounts, external mounting (they push the walls together a bit
+            translate([-2*lip,-offset,snap_offset+wall]) lidSnapIn(offset);
+            translate([-2*lip,-offset,height-snap_offset+wall]) lidSnapIn(offset);
+            translate([width+3*wall-3*lip,-offset,snap_offset+wall]) rotate([0,180,0]) lidSnapIn(offset);
+            translate([width+3*wall-3*lip,-offset,height-snap_offset+wall]) rotate([0,180,0]) lidSnapIn(offset);
+        }
+        
+        translate([wall/2,0,0]) fanMount(fan_mnt_hole, delta);
     }
 }
 
