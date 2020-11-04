@@ -12,10 +12,12 @@
 
 $fs=0.01;
 profile = 30;
-width = 70;
-depth = 55;
+width = 70 + 20;
+depth = 55 + 13;
 height = 120;
 wall = 2;
+
+base_depth = 3*wall;
 
 // tolerance agains Z-fighting
 delta = 0.01;
@@ -24,18 +26,18 @@ delta = 0.01;
 lip = 0.3;
 
 // snap-in panel side extension
-extens = 6;
+extens = 0;
 
 // mounting pillars for atmega
 mount_outer  = 8;
 mount_inner  = 3.5;
-mount_height = 7;
+mount_height = 5;
 
 // dimensions of the USB hole
 usb_w = 14;
 usb_h = 13;
 
-mega_x = 5;
+mega_x = 5 + 8;
 mega_y = 4;
 usb_x = mega_x + 6;
 usb_y = 3*wall + mount_height + 2.5 - 1; // 2.5 is board width, 1 mm is the margin
@@ -47,9 +49,14 @@ cable_x_rad = 14;
 cable_y_rad = 9;
 cable_m_rad = 12;
 
+pillar_screw_d = 3.5;
+pillar_d = pillar_screw_d + 2*wall;
+pillar_h = depth - base_depth + 2*wall;
+
+
 cable_out_h = 49;
 cable_out_bottom_h = 29;
-cable_out_top_x = width - cable_x_rad + 3 * wall;
+cable_out_top_x = width - pillar_d - cable_x_rad + 4.5 * wall;
 cable_out_bottom_x = cable_out_top_x;
 cable_out_side_left_z = 55;
 cable_out_side_right_z = 44;
@@ -58,54 +65,65 @@ mount_bottom_offset = 25+profile;
 mount_top_offset = height-10;
 
 // top duct width/height
-top_duct_x = 2 * wall; 
+top_duct_x = 4 * wall; 
 top_duct_y = 2*wall + mount_height + usb_h + wall * 3;
 top_duct_width = cable_out_top_x - cable_x_rad / 2 - top_duct_x - 2*wall;
 top_duct_height = depth - top_duct_y;
 
-// snap-in notch
-snap_len = 10;
-snap_width = 8;
-snap_notch = 3;
-snap_offset = 25;
-
-// snap-in holes for panel mounts
-snap_bottom_y = 10;
-snap_top_y    = depth - 15;
-snap_bottom_z = 20;
-snap_top_z    = height -30;
-snap_hook_height = 10;
-snap_base_height = 15; // base to side panels hole-peg mount
-snap_dt = 0.6;
-snap_hook_notch = 1;
-snap_hook_extens = 1.6*snap_hook_notch;
-snap_spring_slot_h = 0.8;
-snap_spring_slot_extens = 20;
-snap_hook_left = 10;
-snap_hook_right = width - 10 - snap_hook_height;
-
 // rotate([-90,0,0]) fan_lid();
 boxDemo();
 
-// clip();
-
-// clips the fan mount lid with the wall of the box together for better rigidity
-module clip() {
-    union() {
-        cube([wall*4, wall, 4*wall]);
-        translate([0, wall, 0]) cube([wall, snap_width, snap_width*2]);
-        translate([wall*3, wall, 0]) cube([wall, snap_width, snap_width*2]);
-    };
+module boxDemo() {
+    solid_box();
+    // TODO: add builtin supports
+    // supports();
+    fan_lid();
+    // cableGuards(true);
 }
 
-module boxDemo() {
-    base();
-    top_panel();
-    bottom_panel();
-    right_panel();
-    left_panel();
-    fan_lid();
-    cableGuards(true);
+module chamfers() {
+    ch_d = 4;
+    w2 = 2*wall;
+    rotate([0,45,0]) translate([0,depth/2,0]) cube([ch_d,depth+8*wall,ch_d], center=true);
+    translate([width+w2,0,0]) rotate([0,45,0]) translate([0,depth/2,0]) cube([ch_d,depth+8*wall,ch_d], center=true);
+    translate([0,0,height+w2]) rotate([0,45,0]) translate([0,depth/2,0]) cube([ch_d,depth+8*wall,ch_d], center=true);
+    translate([width+w2,0,height+w2]) rotate([0,45,0]) translate([0,depth/2,0]) cube([ch_d,depth+8*wall,ch_d], center=true);
+}
+
+module solid_box() {
+    difference() {
+        union() {
+            base();
+            top_panel();
+            bottom_panel();
+            right_panel();
+            left_panel();
+            pillars();
+        }
+        
+        // minus the chamfers
+        chamfers();
+    }
+}
+
+module pillar(d=pillar_d,h=pillar_h) {
+    rotate([-90,0,0]) difference() {
+        cylinder(h=h, d=d);
+        cylinder(h=h + delta, d=pillar_screw_d);
+    }
+}
+
+// screw-in pillars for the lid
+module pillars() {
+    pd2 = pillar_d/2;
+    w2 = 2*wall;
+    
+    translate([0,base_depth,0]) {
+        translate([pd2,0,pd2]) pillar();
+        translate([width + w2 - pd2,0,pd2]) pillar();
+        translate([pd2,0,height + w2 - pd2]) pillar();
+        translate([width + w2 -pd2,0,height + w2 - pd2]) pillar();
+    }
 }
 
 module cableGuard(rad) {
@@ -128,25 +146,29 @@ module cableGuard(rad) {
 
 module fanMount(rad, delt) {
     span = 70;
-    ox = width / 2 - span / 2 + wall; oy = height-span-30; 
-    translate([ox,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=2*wall+2*delt);
-    translate([ox+span,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=2*wall+2*delt);
-    translate([ox+span,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=2*wall+2*delt);
-    translate([ox,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=2*wall+2*delt);
+    ox = width / 2 - span / 2; oy = height-span-25; 
+    w2=2*wall;
+    
+    translate([ox,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=w2+2*delt);
+    translate([ox+span,wall+delt,oy]) rotate([90,0,0]) cylinder(d=rad,h=w2+2*delt);
+    translate([ox+span,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=w2+2*delt);
+    translate([ox,wall+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=w2+2*delt);
 }
 
-// lid snap-in mount
-module lidSnapIn(len) {
-    translate([-lip,len/2-snap_len/2,0]) cube([wall,snap_len+len,snap_width], center=true);
-    translate([-lip-wall/2+snap_notch/2,-snap_len,-snap_width/2]) cylinder(d=snap_notch, h=snap_width);
+module lidMount(rad, delt) {
+    pd2 = pillar_d/2;
+    w2 = 2*wall;
+    h = 2*wall;
+    
+    translate([0,-wall,0]) {
+        translate([pd2,0,pd2]) rotate([-90,0,0]) cylinder(d=rad,h=h+delt);
+        translate([width + w2 - pd2,0,pd2]) rotate([-90,0,0]) cylinder(d=rad,h=h+delt);
+        translate([pd2,0,height + w2 - pd2]) rotate([-90,0,0]) cylinder(d=rad,h=h+delt);
+        translate([width + w2 -pd2,0,height + w2 - pd2]) rotate([-90,0,0]) cylinder(d=rad,h=h+delt);
+    }
 }
 
-// hole for the lid snap-in mount
-module lidSnapHole() {
-    translate([-delta,-snap_len + snap_notch/2 + 3*lip,-snap_width/2-lip]) cube([wall+2*delta, snap_notch, snap_width+2*lip]);
-}
-
-module frame(w, h, t,d) {
+module frame(w, h, t, d) {
     t2 = t / 2;
     union() {
         translate([-t2,-d,-t2]) cube([w + t, d, t]);
@@ -156,73 +178,49 @@ module frame(w, h, t,d) {
     }
 }
 
-module lid() {
-    // cable management is a nightmare, adding a few centimeters to allow for better cable placement
-    offset = 23;
-    translate([0,depth+offset+3*wall,0]) difference() {
-        union() {
-            // a riser frame
-            translate([wall,0,wall]) frame(width, height,2*wall,offset);
-            
-            // adding a cube where the extens are , for looks
-            translate([-extens,-offset,0]) cube([extens, offset, wall]);
-            translate([width+2*wall,-offset,0]) cube([extens, offset, wall]);
-            translate([-extens,-offset,height+wall]) cube([extens, offset, wall]);
-            translate([width+2*wall,-offset,height+wall]) cube([extens, offset, wall]);
-            
-            difference() {
-                translate([-extens,0,0]) cube([width+2*wall+2*extens,wall,height+2*wall]);
-                for (x = [4*wall : 2*wall : height-2*wall]) {
-                    translate([3*wall,-delta,x]) cube([width-4*wall,wall+2*delta,wall]);
-                }
-            }
-
-            // 4 mounting holes
-            fanMount(fan_mnt_hole + 3, 0);
-            
-            // snap-in mounts
-            translate([wall+3*lip,-offset,snap_offset+wall]) rotate([0,180,0]) lidSnapIn();
-            translate([wall+3*lip,-offset,height-snap_offset+wall]) rotate([0,180,0]) lidSnapIn();
-            translate([width+wall-3*lip,-offset,snap_offset+wall]) lidSnapIn();
-            translate([width+wall-3*lip,-offset,height-snap_offset+wall]) lidSnapIn();
-        }
-        
-        fanMount(fan_mnt_hole, delta);
-    }
-}
-
 // simplified cover that only mounts a bigger 80 mm fan
 module fan_lid() {
-    offset = 1*wall+20;
-    translate([0,depth+offset+3*wall,0]) difference() {
+    offset = 0; // 1*wall+20;
+    translate([wall,depth+offset+3*wall,0]) difference() {
         union() {
             // a riser frame
-            translate([0,wall,wall]) frame(width+3*wall, height,2*wall,2*wall);
-            
-            // adding a cube where the extens are , for looks
-            /*translate([-extens,-offset,0]) cube([extens, offset, wall]);
-            translate([width+2*wall,-offset,0]) cube([extens, offset, wall]);
-            translate([-extens,-offset,height+wall]) cube([extens, offset, wall]);
-            translate([width+2*wall,-offset,height+wall]) cube([extens, offset, wall]);
-            
-            /*difference() {
-                translate([-extens,0,0]) cube([width+2*wall+2*extens,wall,height+2*wall]);*/
-            for (x = [2*wall : 5*wall : height-2*wall]) {
-                    translate([1*wall,-wall,x]) cube([width+wall,2*wall,2*wall]);
-            }
-            /*}*/
+            translate([0,wall,wall]) frame(width, height, 2*wall, 2*wall);
 
-            // 4 mounting holes
-            translate([wall/2,0,0]) fanMount(fan_mnt_hole + 8, 0);
+            //translate([0,wall,0]) frame(width, height, 2*wall, 2*wall);
             
-            // snap-in mounts, external mounting (they push the walls together a bit
-            translate([-2*lip,-offset,snap_offset+wall]) lidSnapIn(offset);
-            translate([-2*lip,-offset,height-snap_offset+wall]) lidSnapIn(offset);
-            translate([width+3*wall-3*lip,-offset,snap_offset+wall]) rotate([0,180,0]) lidSnapIn(offset);
-            translate([width+3*wall-3*lip,-offset,height-snap_offset+wall]) rotate([0,180,0]) lidSnapIn(offset);
+            translate([0,-wall,0]) cube([width+wall,2*wall,height]);
+            
+            // translate([wall/2,wall,wall]) cube([width+wall,wall,height]);
+            
+            /*for (x = [2*wall : 5*wall : height-2*wall]) {
+                    translate([1*wall,-wall,x]) cube([width+wall,2*wall,2*wall]);
+            }*/
+
+            // 4 fan mounting holes
+            fanMount(fan_mnt_hole + 8, 0);
+            
+            // 4 lid mounting holes
+            translate([-wall,0,0]) lidMount(pillar_d, 0);
         }
+
+        // text
+        translate([width/2-27,wall,157]) rotate([-90,0,0]) rotate([0,180,0]) {
+            #translate([-67,51,0.6]) rotate([180,0,0]) linear_extrude(height = 2) 
+            { text("DERIVATIVE",font = "helvetica:style=Bold", size=5, center=true); }
+            #translate([-26,51,0.6]) rotate([180,0,0]) linear_extrude(height = 2) 
+            { text("VOLCA",font = "helvetica:style=Bold", size=8, center=true); }
+            #translate( [ -66 , 42.5 , -0.4 ] )  cube( [ 38 , 1.6 , 1 ] ); 
+        }
+
+        // fan hole
+        span = 70;
+        ox = width / 2 - span / 2; oy = height-span-25; 
+        translate([ox + span/2,-wall-delta,oy+span/2]) rotate([-90,0,0]) cylinder(d=75,h=4*wall+2*delta,$fn=100);
         
-        translate([wall/2,0,0]) fanMount(fan_mnt_hole, delta);
+        fanMount(fan_mnt_hole, delta);
+        translate([-wall,0,0]) lidMount(pillar_screw_d, delta);
+        
+        translate([-wall,0,0]) chamfers();
     }
 }
 
@@ -274,69 +272,11 @@ module megaMountHoles() {
         
         // smart ctl daughterboard
         %translate([0,101.6-6,2.5+26]) cube([53.3,15,2]);
+        
         // two duponts for smart ctrl on daughterboard
         %translate([10,101.6,2.5+26]) cube([16,8,14]);
         %translate([30,101.6,2.5+26]) cube([16,8,14]);
     }
-}
-
-module body() {
-    cube([width,/*depth+*/3*wall,height]);
-}
-
-// top bottom snap holes
-module topbottom_snap_holes() {
-    translate([-snap_dt/2,snap_bottom_y,-delta]) cube([wall+snap_dt,snap_hook_height+snap_dt, wall+2*delta]);
-    translate([-snap_dt/2,snap_top_y,-delta]) cube([wall+snap_dt,snap_hook_height+snap_dt, wall+2*delta]);
-    translate([width+wall-snap_dt/2,snap_bottom_y,-delta]) cube([wall+snap_dt,snap_hook_height+snap_dt, wall+2*delta]);
-    translate([width+wall-snap_dt/2,snap_top_y,-delta]) cube([wall+snap_dt,snap_hook_height+snap_dt, wall+2*delta]);
-    
-    translate([wall+snap_hook_left-snap_dt/2,-snap_dt/2,-delta]) cube([snap_hook_height+snap_dt, 2*wall + snap_dt, wall+2*delta]);
-    translate([wall+snap_hook_right-snap_dt/2,-snap_dt/2,-delta]) cube([snap_hook_height+snap_dt, 2*wall + snap_dt, wall+2*delta]);
-}
-
-// side snap holes
-module side_snap_holes() {
-    translate([-delta,-snap_dt/2,snap_top_z-snap_dt/2]) cube([wall+2*delta, 2*wall+snap_dt, snap_base_height + snap_dt]);
-    translate([-delta,-snap_dt/2,snap_bottom_z-snap_dt/12]) cube([wall+2*delta, 2*wall+snap_dt, snap_base_height + snap_dt]);
-}
-
-// excess material to remove to make a rounded corner
-module rounded_corner(dia,w) {
-    translate([-dia/2,-dia/2,0]) difference() {
-        translate([0,0,delta/2]) cube([dia/2,dia/2,w]);
-        cylinder(d=dia,h=w+delta);
-    }
-}
-
-// these are on the left and right panel, top and bottom side. They snap into the holes in top/bottom panels
-// we cut a slot in the one closer to the base in them later
-module snap_peg(h, bottom_peg) {
-    translate([0,0,-snap_hook_extens]) union() {
-        if (bottom_peg) {
-            cube([wall, h,wall + snap_hook_extens]);
-            translate([0, 0, snap_hook_notch/2]) rotate([0,90,0]) cylinder(d=snap_hook_notch,h=wall);
-        } else {
-            difference() {
-                cube([wall, h,wall + snap_hook_extens]);
-                rotate([90,180,90]) rounded_corner(2*snap_hook_notch, wall);
-            }
-        }
-        
-        translate([0, h, snap_hook_notch/2]) rotate([0,90,0]) cylinder(d=snap_hook_notch,h=wall);
-    }
-}
-module snap_pegs() {
-    // top one has no slot in it cut, so it has to pass through with the peg
-    translate([0,snap_top_y + snap_hook_notch,0]) snap_peg(snap_hook_height, true);
-    // bottom one will be springy
-    translate([0,snap_bottom_y,0]) snap_peg(snap_hook_height - snap_hook_notch, false);
-}
-
-// we don't place the spring slot near the edge enough to have thin enough wall for a spring, so we make two holes to make it springy
-module snap_spring_slot() {
-    translate([-delta,snap_top_y + snap_hook_height/2, - snap_hook_extens - delta]) cube([wall+2*delta, snap_spring_slot_h, snap_spring_slot_extens]);
-    translate([-delta,snap_top_y + snap_hook_height + snap_spring_slot_h, - snap_hook_extens + snap_hook_notch]) cube([wall+2*delta, snap_spring_slot_h, snap_spring_slot_extens - snap_hook_notch]);
 }
 
 module top_panel() {
@@ -355,8 +295,6 @@ module top_panel() {
                 translate([top_duct_x + w, top_duct_y + h, - delta/2]) cube([wall*1.2,wall*1.2,wall+delta]);
             }
         }
-        
-        topbottom_snap_holes();
     }
 }
 
@@ -369,97 +307,37 @@ module bottom_panel() {
         
         // ============== bottom panel ===============
         // control box cables + power - in
-        translate([10, 2*wall + depth - 12, -delta]) cube([width - 2*10 + 2*wall,12+delta,wall+2*delta]);
-        
-        // mount holes for snap-in extensions
-        topbottom_snap_holes();
+        translate([10, 2*wall + 55 - 12, -delta]) cube([width - 2*10 + 2*wall,12+delta,wall+2*delta]);
     }
 }
 
 module right_panel() {
     translate([0,0,wall])  difference() {
-        union() {
-            difference() {
-                translate([0,-extens,0]) cube([wall,depth+2*wall+extens,height]);
-                translate([wall,depth,snap_offset]) rotate([0,180,0]) lidSnapHole();
-                translate([wall,depth,height-snap_offset]) rotate([0,180,0]) lidSnapHole();
-                // through hole for the X motor
-                translate([-delta, cable_out_h, cable_out_side_right_z]) rotate([0,90,0]) cylinder(d=cable_m_rad, h=wall+2*delta);
-                
-                // slide - in holes where the 3030 mount is
-                translate([-delta,-extens-delta,mount_bottom_offset -profile - wall - snap_dt/2]) cube([wall+2*delta, extens + 2*wall, profile + snap_dt]);
-                translate([-delta,-extens-delta,mount_top_offset    -profile - wall - snap_dt/2]) cube([wall+2*delta, extens + 2*wall, profile + snap_dt]);
-                
-                
-            }
-            
-            translate([0,0,-wall]) snap_pegs();
-            translate([wall,0,height+snap_hook_extens]) rotate([0,180,0]) snap_pegs();
-        }
-        
-        // 2 spring slots
-        translate([0,0,-wall]) snap_spring_slot();
-        translate([wall,0,height+snap_hook_extens]) rotate([0,180,0]) snap_spring_slot();
+        translate([0,-extens,0]) cube([wall,depth+2*wall+extens,height]);
+        // through hole for the X motor
+        translate([-delta, cable_out_h, cable_out_side_right_z]) rotate([0,90,0]) cylinder(d=cable_m_rad, h=wall+2*delta);
     }
 }
 
 module left_panel() {
     translate([width+wall,0,wall]) difference() {
-        union() {
-            difference() {
                 translate([0,-extens,0]) cube([wall,depth+2*wall+extens,height]);
-                translate([0,depth,snap_offset]) lidSnapHole();
-                translate([0,depth,height-snap_offset]) lidSnapHole();
+
                 // through hole for the Y carriage cable
                 translate([- delta, cable_out_h, cable_out_side_left_z]) rotate([0,90,0]) cylinder(d=cable_y_rad, h=wall+2*delta);
-                
-                // mount holes - on left it slides onto two long guide rectangles
-                side_snap_holes();
-        
-            }
-            translate([0,0,-wall]) snap_pegs();
-            translate([wall,0,height+snap_hook_extens]) rotate([0,180,0]) snap_pegs();
         }
-        
-        // 2 spring slots
-        translate([0,0,-wall]) snap_spring_slot();
-        translate([wall,0,height+snap_hook_extens]) rotate([0,180,0]) snap_spring_slot();
-    }
 }
 
 module base() {
     union() {
-        difference() {
-            union() {
-                
-                translate([wall+snap_dt,0,wall]) body();
+        translate([wall/*+snap_dt*/,0,wall]) cube([width,/*depth+*/base_depth,height]);
 
-                translate([-10,0, mount_bottom_offset]) rotate([0,90,90]) mount3030();
-                translate([-10,0, mount_top_offset]) rotate([0,90,90]) mount3030();
+        translate([-10,0, mount_bottom_offset]) rotate([0,90,90]) mount3030();
+        translate([-10,0, mount_top_offset]) rotate([0,90,90]) mount3030();
                 
-                // these rise the walls for holding the panel on both sides
-                translate([0,3,mount_bottom_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);
-                translate([0,3,mount_top_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);
-                
-                // panel guide pegs on the left side
-                translate([width+wall+snap_dt,0,snap_top_z + wall]) cube([wall, 2*wall, snap_base_height]);
-                translate([width+wall+snap_dt,0,snap_bottom_z + wall]) cube([wall, 2*wall, snap_base_height]);
-
-                // top/bottom panel guides
-                // top
-                translate([wall+snap_hook_left,0,height+wall]) cube([snap_hook_height,2*wall,wall]);
-                translate([wall+snap_hook_right,0,height+wall]) cube([snap_hook_height,2*wall,wall]);
-                // bottom
-                translate([wall+snap_hook_left,0,0]) cube([snap_hook_height,2*wall,wall]);
-                translate([wall+snap_hook_right,0,0]) cube([snap_hook_height,2*wall,wall]);
-            }
-            
-            // right panel guides + tolerance
-            // bottom mount
-            translate([0,2*wall-snap_dt/2,mount_bottom_offset-profile-delta]) cube([wall+snap_dt,3*wall+snap_dt,profile+2*delta]);
-            // top mount
-            translate([0,2*wall-snap_dt/2,mount_top_offset-profile-delta]) cube([wall+snap_dt,3*wall+snap_dt,profile+2*delta]);
-        }
+        // these rise the walls for holding the panel on both sides
+        /*translate([0,3,mount_bottom_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);
+        translate([0,3,mount_top_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);*/
         
         // pillars for the arduino (china clone)
         translate([mega_x, 3*wall-0.01, height-101.6+mega_y-8]) rotate([90,180,180]) megaMountHoles();
@@ -473,14 +351,14 @@ module mount3030(profile = 30) {
     deepness = 2;
     gap=20;
     
-    difference(){
-        union(){
-        translate([0,-gap,0])cube([profile,profile+gap,thickness]);
-        translate([0,(profile-slot_width)/2,0])cube([slot_width-deepness,slot_width,thickness+deepness]);
-        translate([profile-slot_width+deepness,(profile-slot_width)/2,0])cube([slot_width-deepness,slot_width,thickness+deepness]);
-        translate([profile-slot_width+deepness,(profile+slot_width)/2,thickness])rotate([90,0,0])cylinder(slot_width,deepness,deepness, $fn=100);
-        translate([slot_width-deepness,(profile+slot_width)/2,thickness])rotate([90,0,0])cylinder(slot_width,deepness,deepness, $fn=100);
+    difference() {
+        union() {
+            translate([0,-gap,0])cube([profile,profile+gap,thickness]);
+            translate([0,(profile-slot_width)/2,0])cube([slot_width-deepness,slot_width,thickness+deepness]);
+            translate([profile-slot_width+deepness,(profile-slot_width)/2,0])cube([slot_width-deepness,slot_width,thickness+deepness]);
+            translate([profile-slot_width+deepness,(profile+slot_width)/2,thickness])rotate([90,0,0])cylinder(slot_width,deepness,deepness, $fn=100);
+            translate([slot_width-deepness,(profile+slot_width)/2,thickness])rotate([90,0,0])cylinder(slot_width,deepness,deepness, $fn=100);
         }
-        translate([15,15,-0.5])rotate([0,0,90])cylinder(h = 7, d = 6.2, $fn=100);
+            translate([15,15,-0.5])rotate([0,0,90])cylinder(h = 7, d = 6.2, $fn=100);
     }
 }
