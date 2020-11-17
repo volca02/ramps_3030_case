@@ -10,12 +10,28 @@
 //
 // all modules are oriented as they go together (not in printable orientation)
 
-$fs=0.01;
+$fn=60;
 profile = 30;
 width = 70 + 20 + 2*2;
-depth = 55 + 13 + 2*3;
 height = 120 + 2*2;
+// depth = 55 + 13 + 2*3;
 wall = 1.5;
+
+pillar_d = 2;
+
+// we need less, but we're leving room for the fit inserts
+cable_x_d = 9.2;
+cable_y_rad = 9;
+cable_m_rad = 12;
+
+cable_out_h = 49;
+cable_out_bottom_h = 29 + 5;
+cable_out_side_left_z = 75;
+cable_out_side_right_z = 44;
+cable_out_left_d = 22;
+
+depth = cable_out_h + 12.6; //- cable_y_rad;
+lid_depth = 14;
 
 base_depth = 2*wall;
 
@@ -41,22 +57,18 @@ usb_y = 3*wall + mount_height + 2.5 - 1; // 2.5 is board width, 1 mm is the marg
 
 fan_mnt_hole = 4.1;
 
-// we need less, but we're leving room for the fit inserts
-cable_x_rad = 14;
-cable_y_rad = 9;
-cable_m_rad = 12;
+screw_d = 3.1;
+screw_head_d = 6;
 
 pillar_screw_d = 3.5;
-pillar_d = pillar_screw_d + 2*wall;
-pillar_h = depth - base_depth;
-pillar_off = 2.5*wall;
+pillar_h = depth - base_depth - 2.7;
+pillar_left_h = depth - base_depth;
+pillar_off = pillar_d;
 
-cable_out_h = 49;
-cable_out_bottom_h = 29 + 5;
-cable_out_top_x = width - pillar_d - cable_x_rad + 3 * wall;
-cable_out_bottom_x = cable_out_top_x;
-cable_out_side_left_z = 55;
-cable_out_side_right_z = 44;
+// nut trap
+nut_trap_h = 2.8;
+nut_trap_w = 5.5;
+nut_trap_off = 2.9; // depth of the nut trap
 
 mount_bottom_offset = 25+profile;
 mount_top_offset = height-10;
@@ -64,20 +76,69 @@ mount_top_offset = height-10;
 // top duct width/height
 top_duct_x = 4 * wall;
 top_duct_y = 2*wall + mount_height + usb_h + wall * 3;
-top_duct_width = cable_out_top_x - cable_x_rad / 2 - top_duct_x - 2*wall;
+top_duct_width  = width - 35;
 top_duct_height = depth - top_duct_y - 2 * wall;
 
-bottom_slot_h = 14+delta;
+bottom_slot_h = 18+delta;
 
-// support every centimeter
-support_sp = 10;
-support_w = 0.4;
+// ziptie mounts
+// various input power etc...
+ziptie1_h = 20;
+ziptie1_z = 22;
+
+// Extruder cable
+ziptie2_h = 38;
+ziptie2_z = height - 25;
+
+hinge_d = 8;
+hinge_h = 5;
+hinge_in_h = 4.5;
+hinge_in_off = (hinge_h - hinge_in_h)/2;
+hinge_in_d = 1.9;
+hinge_offset = 4;
+
+// lid poles
+lid_pole_h = 3.1;
+lid_pole_d = 2.5;
 
 // rotate([-90,0,0]) fan_lid();
 box_demo();
 
+// bed_cable_leadout();
+//bed_cable_cover();
+
+/* TO TEST PRINT:
+   * Hinge for the filament insertion clearance and spacing/fit of both pars
+   * closing mechanism once implemented
+   * cable covers bottom/top to test nut insertion, screw fit and cable tightness
+   * bottom part for the screw mount offsets AND depths
+*/
+
+/* TO RESOLVE:
+
+ * bottom part needs repositioning of some of the mount pillars
+ * PCB mount needs screw depths tuned
+ * X cable leadout needs to be done. simple hole won't hold the cable. Maybe a hook shaped hole would
+
+ */
+
+
+module box_demo() {
+    solid_box();
+
+    translate([ width - wall - delta, cable_out_h, cable_out_side_left_z ]) bed_cable_cover();
+    translate([0,0,height - wall]) top_cable_cover();
+    hoffx = hinge_offset-wall;
+    hoffy = -0;
+    /*
+    translate([0,depth,0]) translate([-hoffx,-hoffy,0]) rotate([0,0,90*(1+sin(360*$t))]) translate([hoffx,hoffy,0]) fan_lid();
+        */
+    translate([0,depth+0.1,0]) translate([-hoffx,-hoffy,0]) rotate([0,0,0]) translate([hoffx,hoffy,0]) fan_lid();
+}
+
+
 module support(h,d=wall) {
-    #cube([support_w,h,d]);
+    cube([support_w, h, d]);
 }
 
 module supports() {
@@ -87,15 +148,69 @@ module supports() {
     }
 }
 
-module box_demo() {
-    solid_box();
-    supports();
-    //fan_lid();
-    //cable_guards(true);
+module hinge(x=0,y=15,o=0,hh=hinge_h,c=3,dp=0) {
+    for(h=[0:1:c-1]) translate([0,0,h*2*hinge_h + o]) difference() {
+            hull() {
+                cylinder(d=hinge_d+dp,h=hh);
+                translate([x,y,0]) cylinder(d=0.1,h=hh);
+            }
+
+            translate([0,0,-delta]) cylinder(d=hinge_in_d,h=hinge_h+2*delta);
+    }
+}
+
+module box_hinges(sp=0,dp=0) {
+    // hinges
+    translate([ -2.6, depth, hinge_offset + hinge_h ])
+            hinge(x = 4, y = -10, hh = hinge_in_h + sp, o = hinge_in_off - sp/2, c = 2, dp=dp);
+    translate([ -2.6, depth, height - hinge_offset - 4 * hinge_h ])
+            hinge(x = 4, y = -10, hh = hinge_in_h + sp, o = hinge_in_off - sp/2, c = 2, dp=dp);
+}
+
+module lid_hinges(sp=0,dp=0) {
+    // hinges
+    translate([ -2.6, 0, hinge_offset ])
+            hinge(x = 7.8, y = 11.5, hh = hinge_h + sp, o = -sp / 2, dp = dp);
+    translate([ -2.6, 0, height - hinge_offset - 5 * hinge_h ])
+            hinge(x = 7.8, y = 11.5, hh = hinge_h + sp, o = -sp / 2, dp = dp);
+}
+
+module hook() {
+    d_latch = 3;
+    d_eff   = 5;
+
+    difference() {
+        translate([-14+d_latch/2,-0.5,0]) linear_extrude(height=10) {
+            union() {
+                difference() {
+                    hull() {
+                        circle(d=d_eff);
+                        translate([15,0]) circle(d=d_eff);
+                    }
+
+                    // we only leave the negative part...
+                    translate([-15,0]) square([40,d_eff]);
+                }
+
+                // hook itself
+                translate([(d_latch-d_eff)/2,0]) circle(d=d_latch);
+
+                // mounting part
+                translate([15,0]) hull() {
+                    circle(d=d_eff);
+                    translate([9,7]) circle(d=1);
+                }
+            }
+        }
+
+        // chamfers
+        translate([-30,-3,-3]) rotate([45,0,0]) cube([40,3,3]);
+        translate([-30,-3,10-1.3]) rotate([45,0,0]) cube([40,3,3]);
+    }
 }
 
 module chamfers() {
-    ch_d = 4;
+    ch_d = 3;
     w2 = 2*wall;
     rotate([ 0, 45, 0 ]) translate([ 0, depth / 2, 0 ])
             cube([ ch_d, depth + 8 * wall, ch_d ], center = true);
@@ -108,6 +223,38 @@ module chamfers() {
     translate([ width, 0, height ]) rotate([ 0, 45, 0 ])
             translate([ 0, depth / 2, 0 ])
                     cube([ ch_d, depth + 8 * wall, ch_d ], center = true);
+}
+
+// stolen from prusa MK3S Einsy base source code
+// it's a wall mounted ziptie based cable organization thing
+module ziptie_mount() {
+    rotate([0,180,0]) rotate([-90,0,0])
+    difference() {
+        translate([ 0,  0, -2 ]) cube([ 5, 8, 10 ]);
+        translate([ 0, -1, -3 ]) rotate([ 0,  45, 0 ]) cube([ 5, 10, 8 ]);
+        translate([ 5, -1,  6 ]) rotate([ 0, -60, 0 ]) cube([ 5, 10, 8 ]);
+
+        union() {
+            translate([ 1.5, 2.5, 3.5 ]) cube([ 2  , 3, 10 ]);
+            translate([ 3  , 2.5, 2   ]) cube([ 5.5, 3,  2 ]);
+            translate([ 2  , 2.5, 6.5 ]) cube([ 5  , 3,  3 ]);
+
+            difference() {
+                translate([ 3, 5.5, 3.5 ]) rotate([ 90, 0, 0 ])
+                    cylinder(h = 3, r = 1.5, $fn = 30);
+                translate([ 3.5, 1.5, 4 ]) cube([ 5, 5, 3 ]);
+            }
+
+            difference() {
+                translate([ 4, 5.5, 4.5 ]) rotate([ 90, 0, 0 ])
+                    cylinder(h = 3, r = 1, $fn = 30);
+                translate([ 4, 5.5, 4.5 ]) rotate([ 90, 0, 0 ])
+                    cylinder(h = 3, r = 0.5, $fn = 30);
+                translate([ 3.5, 1.5, 4.5 ]) cube([ 5, 5, 3 ]);
+                translate([ 4., 1.5, 4 ]) cube([ 5, 5, 3 ]);
+            }
+        }
+    }
 }
 
 module solid_box() {
@@ -128,8 +275,9 @@ module solid_box() {
 
 module pillar(d=pillar_d,h=pillar_h) {
     rotate([-90,0,0]) difference() {
-        cylinder(h=h, d=d);
-        cylinder(h=h + delta, d=pillar_screw_d);
+/*        cylinder(h=h, d=d);
+        cylinder(h=h + delta, d=pillar_screw_d);*/
+        translate([0,0,h/2]) cube([d,d,h], center=true);
     }
 }
 
@@ -139,9 +287,9 @@ module pillars() {
 
     translate([0,base_depth,0]) {
         translate([pd2,0,pd2]) pillar();
-        translate([width - pd2,0,pd2]) pillar();
+        translate([width - pd2,0,pd2]) pillar(h=pillar_left_h);
         translate([pd2,0,height  - pd2]) pillar();
-        translate([width - pd2,0,height - pd2]) pillar();
+        translate([width - pd2,0,height - pd2]) pillar(h=pillar_left_h);
     }
 }
 
@@ -177,37 +325,98 @@ module frame(w, h, t, d) {
     }
 }
 
+module lid_shape() {
+    slope = lid_depth/2;
+    polygon([[0,0],[width,0],[width-slope,lid_depth], [slope,lid_depth]]);
+}
+
+module lid_cutout() {
+    wl    = 2*wall;
+    slope = lid_depth/2;
+    polygon([[wl,-delta],[width-wl,-delta],[width-slope,lid_depth-wl], [slope,lid_depth-wl]]);
+}
+
 // simplified cover that only mounts a bigger 80 mm fan
 module fan_lid() {
-    translate([0,depth,0]) difference() {
+    difference() {
         union() {
-            cube([width,2*wall,height]);
+            difference() {
+                linear_extrude(height = height) lid_shape();
 
-            // 4 fan mounting holes
-            fan_mount(fan_mnt_hole + 8, 0);
+                translate([ 0, 0, 2 * wall ])
+                    linear_extrude(height = height - 4 * wall) lid_cutout();
 
-            // 4 lid mounting holes
-            translate([0,0,0]) lid_mount(pillar_d, 0);
+                // text
+                translate([ width / 2 - 36, lid_depth, height + 37 ])
+                    rotate([ -90, 0, 0 ]) rotate([ 0, 180, 0 ])
+                {
+                    translate([ -66, 45.0, -0.4 ]) cube([ 11.5, 1.6, 1 ]);
+                    translate([ -66, 47.25, -0.4 ]) cube([ 11.5, 1.6, 1 ]);
+                    translate([ -66, 49.5, -0.4 ]) cube([ 11.5, 1.6, 1 ]);
+                    translate([ -51.75, 51, 0.6 ]) rotate([ 180, 0, 0 ])
+                        linear_extrude(height = 2)
+                    {
+                        text("DERIVATIVE", font = "helvetica:style=Bold", size = 6);
+                    }
+                    translate([ -35, 153, 0.6 ]) rotate([ 180, 0, 0 ])
+                        linear_extrude(height = 2)
+                    {
+                        text("VOLCA", font = "helvetica:style=Bold", size = 6.5);
+                    }
+                    translate([ -66, 146.75, -0.4 ]) cube([ 28.5, 1.6, 1 ]);
+                    translate([ -66, 149.0, -0.4 ]) cube([ 28.5, 1.6, 1 ]);
+                    translate([ -66, 151.25, -0.4 ]) cube([ 28.5, 1.6, 1 ]);
+                }
+
+                // cosmetics
+                translate([ 0, lid_depth, -3.1 ]) rotate([ 45, 0, 0 ])
+                    cube([ width, 4, 4 ]);
+                translate([ 0, lid_depth, height - 2.8 ]) rotate([ 45, 0, 0 ])
+                    cube([ width, 4, 4 ]);
+
+                // todo: Cutout from the circular hole to the side to allow for fan
+                // cable to go in cleanly todo: a well designed hinge mechanism. one
+                // screw on each end of the lid todo: lid snap-in mechanism to hold
+                // it closed (or a single screw system to hold it closed)
+
+                // fan holes
+                span = 70;
+                ox = width / 2 - span / 2;
+                oy = height - span - 25;
+
+                translate([ 0, lid_depth - 2 * wall, 0 ]) {
+                    translate([ ox + span / 2, -delta, oy + span / 2 ])
+                        rotate([ -90, 0, 0 ]) cylinder(
+                                d = 75, h = 4 * wall + 2 * delta, $fn = 100);
+                    fan_mount(fan_mnt_hole, delta);
+
+                    // hole for the cable to go through
+                    translate([ox+10, -delta, oy-7]) hull() {
+                        rotate([-90,0,0]) cylinder(d=6,h=3*wall);
+                        translate([0,0,20]) rotate([-90,0,0]) cylinder(d=6,h=3*wall);
+                    }
+                }
+
+                chamfers();
+
+                // hinges from the other side, to make space for them
+                box_hinges(sp=hinge_in_off,dp=1);
+            }
+
+            // ziptie holder for the fan cable
+            translate([40,lid_depth-2*wall+1.5,8]) rotate([90,0,90]) ziptie_mount();
+
+            lid_hinges();
+
+            // two hooks
+            translate([width,0,10]) rotate([0,0,90]) hook();
+            translate([width,0,height - 20]) rotate([0,0,90]) hook();
+
+            // support material for lid poles
+            translate([width-wall-3, 0, 1]) cube([1.8,4,3]);
         }
 
-        // text
-        translate([width/2-28,2*wall,height+37]) rotate([-90,0,0]) rotate([0,180,0]) {
-            translate([-67,51,0.6]) rotate([180,0,0]) linear_extrude(height = 2)
-            { text("DERIVATIVE",font = "helvetica:style=Bold", size=5); }
-            translate([-26,51,0.6]) rotate([180,0,0]) linear_extrude(height = 2)
-            { text("VOLCA",font = "helvetica:style=Bold", size=8); }
-            translate( [ -66 , 42.5 , -0.4 ] )  cube( [ 38 , 1.6 , 1 ] );
-        }
-
-        // fan hole
-        span = 70;
-        ox = width / 2 - span / 2; oy = height-span-25;
-        translate([ox + span/2,-wall-delta,oy+span/2]) rotate([-90,0,0]) cylinder(d=75,h=4*wall+2*delta,$fn=100);
-
-        fan_mount(fan_mnt_hole, delta);
-        lid_mount(pillar_screw_d, delta);
-
-        chamfers();
+        translate([width-wall, delta, 0]) lid_poles();
     }
 }
 
@@ -226,21 +435,6 @@ module cable_guard(rad) {
 
         // split slot to make it forceable
         translate([rad - 2*narrowing,0,+wall]) cube([2*wall+3*narrowing,narrowing,4*wall+3*delta],center=true);
-    }
-}
-
-// note - remove the transforms before printing
-module cable_guards(demo) {
-    if (demo) {
-        translate([cable_out_top_x, cable_out_h, height]) cable_guard(cable_x_rad);
-        translate([cable_out_bottom_x, cable_out_bottom_h, 0]) rotate([0,180,0]) cable_guard(cable_x_rad);
-        translate([width, cable_out_h, cable_out_side_left_z ]) rotate([0,90,0]) cable_guard(cable_y_rad);
-        translate([0, cable_out_h, cable_out_side_right_z]) rotate([180,90,0]) cable_guard(cable_m_rad);
-    } else {
-        translate([0,0,3*wall]) rotate([180,0,0]) cable_guard(cable_x_rad);
-        translate([cable_x_rad * 4,0,3*wall]) rotate([180,0,0]) cable_guard(cable_x_rad);
-        translate([cable_x_rad * 2,0,3*wall]) rotate([180,0,0]) cable_guard(cable_y_rad);
-        translate([-cable_x_rad * 2,0,3*wall]) rotate([180,0,0]) cable_guard(cable_m_rad);
     }
 }
 
@@ -284,53 +478,345 @@ module mega_mount_holes() {
     }
 }
 
+
+module top_cable_leadout() {
+    rotate([0,-90,0]) difference() {
+        // base shape is a conical sided cylinder
+        union() {
+            cylinder(h=7,d1=22,d2=22-5,$fn=50);
+            translate([0,0,-wall]) cylinder(h=wall,d=22,$fn=50);
+            translate([0,0,-wall-7]) cylinder(h=7,d1=22-7,d2=22,$fn=50);
+        }
+
+        // only half of it is needed...
+        translate([-12,0,-13]) cube([24,22,22]);
+
+        // cable leadout for the heated bed is rotated so that it lifts the calbe
+        rotate([0,-30,0]) translate([0,0,-25]) cylinder(d=6.5,h=40);
+
+        xoff = 5.0;
+        zoff = 3.5;
+        sc_h = nut_trap_off - nut_trap_h/2 - 0.12;
+
+        translate([xoff, 0,  zoff]) {
+            rotate([90,0,0]) translate([0,0,-delta]) cylinder(d=screw_d,h = sc_h);
+            nut_trap();
+        }
+
+        translate([-xoff, 0, -zoff-1.5]) {
+            rotate([90,0,0]) translate([0,0,-delta]) #cylinder(d=screw_d,h=sc_h);
+            nut_trap(180);
+        }
+
+        // internal support
+    }
+}
+
+module top_cable_cover() {
+    wls = 16;
+    cx = width - 16;
+    outd = cable_x_d+wls;
+    difference() {
+        union() {
+            translate([cx, cable_out_h, -delta]) cylinder(d=outd,h=5+wall);
+            translate([cx, cable_out_h, 5+wall]) cylinder(d1=outd,d2=outd-2,h=2);
+            translate([cx, cable_out_h, -7]) cylinder(d2=outd,d1=outd-7,h=7);
+
+            translate([cx - outd/2 + 0.5, cable_out_h, 0]) cube([outd - 1,25/2,wall]);
+        }
+
+        translate([cx-outd/2, -wls+cable_out_h, -8]) cube([outd,wls,19]);
+
+        // excess material on the sides and top
+        translate([cx - outd/2, cable_out_h, -5]) cube([0.5, 25/2, 20]);
+        translate([cx + outd/2 - 0.5, cable_out_h, -5]) cube([0.5, 25/2, 20]);
+        translate([cx-outd/2, cable_out_h+25/2, -8]) cube([outd,wls,19]);
+
+        translate([cx, cable_out_h,-7]) {
+            for(z=[5:1:12])
+                translate([0,0,z - 0.005])
+                    cylinder(d=cable_x_d - (0.5*(z%2)),h=1.01);
+
+            translate([0,0,-delta]) cylinder(d = cable_x_d, h = 5 + delta);
+            translate([0,0,-1-delta]) cylinder(d1 = cable_x_d + 4, d2 = cable_x_d, h = 4);
+            translate([0,0,12]) union() {
+                cylinder(d = cable_x_d, h = 4);
+                translate([0,0,2]) cylinder(d1 = cable_x_d, d2=cable_x_d + 3, h = 4);
+            }
+        }
+
+        sc_h_off = 4;
+        translate([ cx, cable_out_h, -delta + screw_head_d / 2 + wall + 0.25 ])
+                rotate([ -90, 0, 0 ]) translate([ 0, 0, -delta ])
+        {
+            for (x=[-8,8]) translate([x,0,0]) {
+                    cylinder(d=screw_d,h=sc_h_off + delta);
+                    translate([0,0,sc_h_off]) cylinder(d=screw_head_d, h=15);
+                }
+        }
+    }
+}
+
 module top_panel() {
-    translate([0,0,height - wall]) difference() {
-        cube([width,depth,wall]);
+    wls = 16;
+    cx = width - 16;
+    outd = cable_x_d+wls;
+    translate([0,0,height - wall]) union() {
+        difference() {
+            union() {
+                cube([width, depth, wall]);
 
-        // through hole for X axis cable
-        translate([cable_out_top_x, cable_out_h,-delta]) cylinder(d=cable_x_rad, h=wall+2*delta);
+                // cable leadout for the print head
+                translate([cx, cable_out_h, -delta + wall]) cylinder(d=outd,h=5);
+                translate([cx, cable_out_h, -delta + wall + 5]) cylinder(d1=outd,d2=outd-2,h=2);
+                translate([cx, cable_out_h, -7]) cylinder(d2=outd,d1=outd-7,h=7);
 
-        // through hole for USB
-        translate([usb_x, usb_y,-delta]) cube([usb_w,usb_h,wall*2+2*delta]);
+                // supports
+                difference() {
+                    translate([cx, cable_out_h-outd/2 - 3.2, -delta + wall ]) rotate([27,0,0]) cube([10,15,5.5],center=true);
+                    translate([cx, cable_out_h-outd/2 - 5, -5 ]) cube([13,15,11.5],center=true);
+                }
 
-        // air duct out on top
-        for (h = [0:wall*2:top_duct_height]) {
-            for (w = [0:wall*2:top_duct_width]) {
-                translate([top_duct_x + w, top_duct_y + h, - delta/2]) cube([wall*1.2,wall*1.2,wall+delta]);
+                translate([cx - 13/2, base_depth, -wall ]) cube([13,cable_out_h - outd/2, wall]);
+            }
+
+            cxr = cable_x_d / 2;
+
+            // whole upper half of the cable cover is removed to allow for screw-in cover
+            translate([cx-outd/2, cable_out_h, -8]) cube([outd,wls,19]);
+            translate([cx - outd/2, cable_out_h - 25/2, wall + delta]) cube([0.5, 25/2 + delta, 20]);
+            translate([cx + outd/2 - 0.5, cable_out_h - 25/2, wall + delta]) cube([0.5, 25/2 + delta, 20]);
+
+
+            // through hole for X axis cable
+            translate([cx, cable_out_h,-8]) {
+                translate([-cable_x_d/2,0,-wall/2]) cube([cable_x_d,cable_x_d + 2,6 + 7 + 2 * wall]);
+                cylinder(d = cable_x_d, h = 2 * wall + 2 * delta + 6 + 7);
+                cylinder(d1 = cable_x_d + 4, d2=cable_x_d, h = 4);
+                translate([0,0,15]) cylinder(d1 = cable_x_d, d2=cable_x_d + 3, h = 4);
+            }
+
+            // screw holes in the leadout
+            sc_h_off = 4;
+            translate([cx, cable_out_h-sc_h_off, screw_head_d/2 + wall + 0.25]) rotate([-90,0,0]) {
+                for (x=[-8,8]) translate([x,0,0]) {
+                        translate([0,0,sc_h_off - nut_trap_h/2]) cylinder(d=screw_d,h=sc_h_off + delta);
+                        translate([0,0,-sc_h_off/2]) cylinder(d=screw_d,h=sc_h_off/2);
+                        translate([0,0,sc_h_off-delta]) rotate([90,0,0]) nut_trap();
+                    }
+            }
+
+
+            // through hole for USB
+            translate([usb_x, usb_y,-delta]) cube([usb_w,usb_h,wall*2+2*delta]);
+
+            // air duct out on top
+            for (h = [0:wall*2:top_duct_height]) {
+                for (w = [0:wall*4:top_duct_width]) {
+                    translate([top_duct_x + w, top_duct_y + h, - delta/2]) cube([wall*3.1,wall*1.2,wall+delta]);
+                }
             }
         }
     }
 }
 
 module bottom_panel() {
-    difference() {
-        cube([width,depth,wall]);
+    dx = 25;
 
-        // through hole for X axis cable
-        translate([cable_out_top_x, cable_out_bottom_h,-delta]) cylinder(d=cable_x_rad, h=wall+2*delta);
+    union() {
+        difference() {
+            cube([width,depth,wall]);
 
-        // ============== bottom panel ===============
-        // control box cables + power - in
-        translate([10, 2*wall + 55 - 12, -delta]) cube([width - 2*10 + 2*wall,bottom_slot_h,wall+2*delta]);
+            // ============== bottom panel ===============
+            // control box cables + power - in
+            translate([ 6, 2 * wall + 41, -delta ]) cube(
+                    [ width - 2 * 6 + 2 * wall, bottom_slot_h, wall + 2 * delta ]);
+            translate([ width - dx - 2*wall, 2 * wall + 20, -delta ]) cube(
+                    [ dx, 31, wall + 2 * delta ]);
+
+        }
+
+        translate([width - pillar_off/2 - dx - 2*wall,0,pillar_off]) pillar(h=40 + 2*wall);
     }
 }
 
 module right_panel() {
-    difference() {
-        cube([wall,depth,height]);
-        // through hole for the X motor
-        translate([-delta, cable_out_h, cable_out_side_right_z]) rotate([0,90,0]) cylinder(d=cable_m_rad, h=wall+2*delta);
+    union() {
+        difference() {
+            cube([wall,depth,height]);
+            translate([0,depth,0]) lid_hinges(sp=hinge_in_off*2,dp=1);
+
+            // cutout for X cable
+            translate([-delta,50,55]) rotate([0,90,0]) hull() {
+                cylinder(d=10,h=2*wall);
+                translate([0,20,0]) cylinder(d=10,h=2*wall);
+            }
+        }
+
+        box_hinges();
+
+        // ziptie mount for fan
+        translate([wall-1.5,40,25]) rotate([0,180,0]) ziptie_mount();
+
+        // ziptie mount for X cable
+        translate([wall-1.5,40,75]) rotate([0,180,0]) ziptie_mount();
+
+    }
+}
+
+// nut trap oriented in y plane
+module nut_trap(rot=0) {
+    trap_l = 8;
+    // this makes the inscribed cylinder have the same side to side distance as specified in D
+    // inscribed circle in the cylinder instead)
+    coeff = 2/sqrt(3);
+
+    translate([0, -nut_trap_off, 0]) rotate([0,rot,0]) union() {
+        translate([0,0,trap_l/2]) cube([nut_trap_w, nut_trap_h, trap_l], center=true);
+        translate([0,-nut_trap_h/2,0]) rotate([-90,0,0]) rotate([0,0,30]) cylinder(d=coeff*nut_trap_w, h=nut_trap_h,$fn=6);
+    }
+}
+
+module bed_cable_cover() {
+    rotate([0,-90,0]) difference() {
+        // base shape is a conical sided cylinder
+        union() {
+            translate([0,0,-wall-7]) cylinder(h=7,d1=22-6,d2=22,$fn=50);
+            translate([-10.5,0,-wall]) cube([21,12.5,7+wall]);
+        }
+
+        // only half of it is needed...
+        translate([-12,-22,-13]) cube([24,22,22]);
+
+
+        // cable leadout for the heated bed is rotated so that it lifts the calbe
+        rotate([0,-30,0]) translate([0,0,-25]) {
+            for(z=[20:1:27])
+                translate([0,0,z - 0.005])
+                    cylinder(d=6.5 - (0.5*(z%2)),h=1.01);
+
+            // for edges we dont want the ribs
+            cylinder(d=6.5,h=20);
+            translate([0,0,28]) cylinder(d=6.5,h=15);
+            translate([-1,0,14.2]) rotate([0,15,0]) cylinder(d2=6.5,d1=11.5,h=3);
+        }
+
+        xoff = 5.0;
+        zoff = 3.5;
+        sc_h_off = 3;
+
+        translate([xoff+0.5, 0, zoff-0.25]) rotate([-90,0,0]) translate([0,0,-delta]) {
+              cylinder(d=screw_d,h=sc_h_off + delta);
+              translate([0,0,sc_h_off]) cylinder(d=screw_head_d, h=15);
+        }
+
+        translate([-xoff, 0, -zoff-1.4]) rotate([-90,0,0]) translate([0,0,-delta]) {
+            cylinder(d=screw_d,h=sc_h_off + delta);
+            translate([0,0,sc_h_off]) cylinder(d=screw_head_d, h=15);
+        }
+    }
+}
+
+module bed_cable_leadout() {
+    rotate([0,-90,0]) difference() {
+        // base shape is a conical sided cylinder
+        union() {
+            cylinder(h=7,d1=22,d2=22-3,$fn=50);
+            translate([0,0,-wall]) cylinder(h=wall,d=22,$fn=50);
+            translate([0,0,-wall-7]) cylinder(h=7,d1=22-6,d2=22,$fn=50);
+        }
+
+        // only half of it is needed...
+        translate([-12,0,-13]) cube([24,22,22]);
+
+        // cable leadout for the heated bed is rotated so that it lifts the calbe
+        rotate([0,-30,0]) translate([0,0,-25]) union() {
+            cylinder(d=6.5,h=40);
+            translate([-1,0,14.2]) rotate([0,15,0]) cylinder(d2=6.5,d1=11.5,h=3);
+        }
+
+
+        xoff = 5.0;
+        zoff = 3.5;
+        sc_h = nut_trap_off - nut_trap_h/2 - 0.12;
+
+        translate([xoff + 0.5, 0,  zoff - 0.25]) {
+            rotate([90,0,0]) translate([0,0,-delta]) cylinder(d=screw_d,h = sc_h);
+            nut_trap();
+        }
+
+        translate([-xoff, 0, -zoff-1.4]) {
+            rotate([90,0,0]) translate([0,0,-delta]) #cylinder(d=screw_d,h=sc_h);
+            nut_trap(150);
+        }
+
+        // internal support
+    }
+}
+
+module lid_pole(md) {
+    rotate([-90,0,0]) union() {
+        cylinder(d1=lid_pole_d-md,d2=1,h=lid_pole_h-md);
+        hull() {
+            translate([-lid_pole_d/2,-lid_pole_d/2,-1]) cube([lid_pole_d,lid_pole_d,1]);
+//            translate([0,0,-1]) cylinder(d=lid_pole_d,h=1);
+            translate([1.5,0,-8]) cylinder(d=1,h=1);
+        }
+    }
+}
+
+module lid_poles(md=0) {
+    union() {
+        translate([-1.2,0,2.5]) lid_pole(md);
+        translate([-1.2,0,height-2.5]) lid_pole(md);
     }
 }
 
 module left_panel() {
-    translate([width - wall,0,0]) difference() {
-                cube([wall,depth,height]);
+    translate([ width - wall, 0, 0 ]) union() {
+        difference() {
+            union() {
+                cube([ wall, depth, height ]);
 
-                // through hole for the Y carriage cable
-                translate([- delta, cable_out_h, cable_out_side_left_z]) rotate([0,90,0]) cylinder(d=cable_y_rad, h=wall+2*delta);
+                // support/structural pole
+                translate([-wall, 0, cable_out_side_left_z - 11/2])
+                        cube([ wall, cable_out_h - 6, 11 ]);
+
+                // structural wedge
+                translate([-wall, cable_out_h - 20, cable_out_side_left_z - 11/2])
+                        rotate([0,0,15]) cube([ 2*wall, 15, 11 ]);
+
+                // support for the top cable ziptie
+                translate([-3*wall, 0, ziptie2_z])
+                        cube([ 3*wall, depth, 8 ]);
+
+                translate([-2*wall, 0, cable_out_side_left_z - 11 - 5])
+                        cube([ 2*wall, depth, 5 ]);
+                translate([-2*wall, 0, cable_out_side_left_z + 11])
+                        cube([ 2*wall, depth, 5 ]);
+            }
+
+            // through hole for the Y carriage cable
+            translate([-delta, cable_out_h, cable_out_side_left_z]) {
+                translate([0,0, - cable_out_left_d/2]) cube([20,20,cable_out_left_d]);
+                rotate([ 0, 90, 0 ])
+                    cylinder(d = cable_out_left_d, h = 4*wall + 2 * delta);
+            }
+
+            // hook holes
+            translate([2.5, depth-13.8, 9]) rotate([0,0,90]) cylinder(d=4.5,h=12);
+            translate([2.5, depth-13.8, height - 21]) rotate([0,0,90]) cylinder(d=4.5,h=12);
         }
+
+        translate([ -delta, cable_out_h, cable_out_side_left_z ])
+                bed_cable_leadout();
+
+        translate([ 1.5, ziptie1_h, ziptie1_z ]) ziptie_mount();
+        translate([ 1.5 - 3*wall, ziptie2_h, ziptie2_z ]) ziptie_mount();
+
+        // these hold the lid in place when the hooks are snapped in place
+        translate([-delta, depth, 0]) lid_poles(0.5);
+    }
 }
 
 module base() {
