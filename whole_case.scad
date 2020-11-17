@@ -45,6 +45,7 @@ lip = 0.3;
 mount_outer  = 8;
 mount_inner  = 3.5;
 mount_height = 5;
+mount_depth  = 1;
 
 // dimensions of the USB hole
 usb_w = 14;
@@ -53,7 +54,7 @@ usb_h = 13;
 mega_x = 5 + 8;
 mega_y = 0;
 usb_x = mega_x + 6;
-usb_y = 3*wall + mount_height + 2.5 - 1; // 2.5 is board width, 1 mm is the margin
+usb_y = base_depth + mount_height + 2.5 - 1; // 2.5 is board width, 1 mm is the margin
 
 fan_mnt_hole = 4.1;
 
@@ -74,10 +75,10 @@ mount_bottom_offset = 25+profile;
 mount_top_offset = height-10;
 
 // top duct width/height
-top_duct_x = 4 * wall;
+top_duct_x = 5 * wall;
 top_duct_y = 2*wall + mount_height + usb_h + wall * 3;
-top_duct_width  = width - 35;
-top_duct_height = depth - top_duct_y - 2 * wall;
+top_duct_width  = width - 43;
+top_duct_height = depth - top_duct_y - 4 * wall;
 
 bottom_slot_h = 18+delta;
 
@@ -99,7 +100,7 @@ hinge_offset = 4;
 
 // lid poles
 lid_pole_h = 3.1;
-lid_pole_d = 2.5;
+lid_pole_d = 2.7;
 
 // rotate([-90,0,0]) fan_lid();
 box_demo();
@@ -121,7 +122,6 @@ box_demo();
  * X cable leadout needs to be done. simple hole won't hold the cable. Maybe a hook shaped hole would
 
  */
-
 
 module box_demo() {
     solid_box();
@@ -180,7 +180,7 @@ module hook() {
     d_eff   = 5;
 
     difference() {
-        translate([-14+d_latch/2,-0.5,0]) linear_extrude(height=10) {
+        translate([-14+d_latch/2,-0.3,0]) linear_extrude(height=10, convexity = 10) {
             union() {
                 difference() {
                     hull() {
@@ -194,6 +194,9 @@ module hook() {
 
                 // hook itself
                 translate([(d_latch-d_eff)/2,0]) circle(d=d_latch);
+
+                // a slight slope to ease printing
+                translate([(d_latch-d_eff)/2+d_latch/2,0]) polygon([[0,0],[0.25,0],[-0.25,0.5]]);
 
                 // mounting part
                 translate([15,0]) hull() {
@@ -304,27 +307,6 @@ module fan_mount(rad, delt) {
     translate([ox,w2+delt,oy+span]) rotate([90,0,0]) cylinder(d=rad,h=w2+2*delt);
 }
 
-module lid_mount(rad, delt) {
-    pd2 = pillar_d/2;
-    w2 = 2*wall;
-    h = 2*wall;
-
-    translate([pd2,0,pd2]) rotate([-90,0,0]) cylinder(d=rad,h=h+delt);
-    translate([width - pd2,0,pd2]) rotate([-90,0,0]) cylinder(d=rad,h=h+delt);
-    translate([pd2,0,height - pd2]) rotate([-90,0,0]) cylinder(d=rad,h=h+delt);
-    translate([width - pd2,0,height - pd2]) rotate([-90,0,0]) cylinder(d=rad,h=h+delt);
-}
-
-module frame(w, h, t, d) {
-    t2 = t / 2;
-    union() {
-        translate([0,-d,0]) cube([w + t, d, t]);
-        translate([0,-d,h]) cube([w + t, d, t]);
-        translate([0,-d,0]) cube([t, d, h]);
-        translate([0+w,-d,0]) cube([t, d, h]);
-    }
-}
-
 module lid_shape() {
     slope = lid_depth/2;
     polygon([[0,0],[width,0],[width-slope,lid_depth], [slope,lid_depth]]);
@@ -404,7 +386,7 @@ module fan_lid() {
             }
 
             // ziptie holder for the fan cable
-            translate([40,lid_depth-2*wall+1.5,8]) rotate([90,0,90]) ziptie_mount();
+            translate([40,lid_depth-2*wall+1.5,7]) rotate([90,0,90]) ziptie_mount();
 
             lid_hinges();
 
@@ -413,7 +395,8 @@ module fan_lid() {
             translate([width,0,height - 20]) rotate([0,0,90]) hook();
 
             // support material for lid poles
-            translate([width-wall-3, 0, 1]) cube([1.8,4,3]);
+            translate([width-wall-3.3, 0, height-4.5]) cube([1.8,4,3]);
+            translate([width-wall-3.3, 0, 1.5]) cube([1.8,4,3]);
         }
 
         translate([width-wall, delta, 0]) lid_poles();
@@ -439,21 +422,31 @@ module cable_guard(rad) {
 }
 
 // mounting pillar for atmega
+module mount_pillar() {
+    cylinder(d=mount_outer, h=mount_height);
+}
+
 module mount_hole() {
-    difference() {
-        cylinder(d=mount_outer, h=mount_height);
-        cylinder(d=mount_inner, h=mount_height);
-    }
+    translate([0,0,-mount_depth]) cylinder(d=mount_inner, h=mount_height+mount_depth);
 }
 
 module mega_mount_holes() {
-    // origin is corner of the PCB, up closest to USB port
-
     translate([0,-101.6,mount_height]) union() {
         translate([2.5,15,-mount_height]) mount_hole();
         translate([2.5,90,-mount_height]) mount_hole();
         translate([49.54,13.5,-mount_height]) mount_hole();
         translate([49.5,96.5,-mount_height]) mount_hole();
+    }
+}
+
+module mega_mount_pillars() {
+    // origin is corner of the PCB, up closest to USB port
+
+    translate([0,-101.6,mount_height]) union() {
+        translate([2.5,15,-mount_height]) mount_pillar();
+        translate([2.5,90,-mount_height]) mount_pillar();
+        translate([49.54,13.5,-mount_height]) mount_pillar();
+        translate([49.5,96.5,-mount_height]) mount_pillar();
 
         // mega
         %cube([53.3,101.6,2]);
@@ -519,7 +512,7 @@ module top_cable_cover() {
     difference() {
         union() {
             translate([cx, cable_out_h, -delta]) cylinder(d=outd,h=5+wall);
-            translate([cx, cable_out_h, 5+wall]) cylinder(d1=outd,d2=outd-2,h=2);
+            translate([cx, cable_out_h, 5+wall]) cylinder(d1=outd,d2=outd-3,h=2);
             translate([cx, cable_out_h, -7]) cylinder(d2=outd,d1=outd-7,h=7);
 
             translate([cx - outd/2 + 0.5, cable_out_h, 0]) cube([outd - 1,25/2,wall]);
@@ -568,16 +561,22 @@ module top_panel() {
 
                 // cable leadout for the print head
                 translate([cx, cable_out_h, -delta + wall]) cylinder(d=outd,h=5);
-                translate([cx, cable_out_h, -delta + wall + 5]) cylinder(d1=outd,d2=outd-2,h=2);
+                translate([cx, cable_out_h, -delta + wall + 5]) cylinder(d1=outd,d2=outd-3,h=2);
                 translate([cx, cable_out_h, -7]) cylinder(d2=outd,d1=outd-7,h=7);
 
                 // supports
-                difference() {
-                    translate([cx, cable_out_h-outd/2 - 3.2, -delta + wall ]) rotate([27,0,0]) cube([10,15,5.5],center=true);
-                    translate([cx, cable_out_h-outd/2 - 5, -5 ]) cube([13,15,11.5],center=true);
+                translate([ cx + 7, cable_out_h - outd / 2 - 3.2 - 7.5, -delta + wall ]) difference() {
+                    rotate([ 0, -90, 0 ]) wedge(14, 14.56, 8.5);
+                    translate([-14.5,10,7]) cube([15,14,10]);
                 }
 
                 translate([cx - 13/2, base_depth, -wall ]) cube([13,cable_out_h - outd/2, wall]);
+
+                translate([cx - 6.5, cable_out_h - outd / 2 - 3.2 - 4.8, -wall ]) difference() {
+                    rotate([ 0, 90, 0 ]) wedge(13, 14, 6.65);
+                    translate([0,10,-15.5]) cube([13,14,10]);
+                }
+
             }
 
             cxr = cable_x_d / 2;
@@ -605,7 +604,6 @@ module top_panel() {
                         translate([0,0,sc_h_off-delta]) rotate([90,0,0]) nut_trap();
                     }
             }
-
 
             // through hole for USB
             translate([usb_x, usb_y,-delta]) cube([usb_w,usb_h,wall*2+2*delta]);
@@ -655,8 +653,12 @@ module right_panel() {
 
         box_hinges();
 
+        // support structures for the hinges and overall integrity
+        translate([wall, 0, hinge_offset + 7]) cube([2*wall,depth-2*wall,10]);
+        translate([wall, 0, height - hinge_offset - 18]) cube([2*wall,depth-2*wall,10]);
+
         // ziptie mount for fan
-        translate([wall-1.5,40,25]) rotate([0,180,0]) ziptie_mount();
+        translate([3*wall-1.5,40,20]) rotate([0,180,0]) ziptie_mount();
 
         // ziptie mount for X cable
         translate([wall-1.5,40,75]) rotate([0,180,0]) ziptie_mount();
@@ -772,6 +774,12 @@ module lid_poles(md=0) {
     }
 }
 
+module wedge(w,h,t) {
+    rotate([0,0,90]) linear_extrude(height=w) {
+        polygon([[0,0],[h,0],[h,-t]]);
+    }
+}
+
 module left_panel() {
     translate([ width - wall, 0, 0 ]) union() {
         difference() {
@@ -783,8 +791,17 @@ module left_panel() {
                         cube([ wall, cable_out_h - 6, 11 ]);
 
                 // structural wedge
-                translate([-wall, cable_out_h - 20, cable_out_side_left_z - 11/2])
-                        rotate([0,0,15]) cube([ 2*wall, 15, 11 ]);
+                translate([-wall, cable_out_h - 16, cable_out_side_left_z - 11/2]) difference() {
+                        wedge(11, 9, -6);
+                        translate([-6-10.5,1,-1]) cube([11,15,14]);
+                }
+
+                // outer structural wedge
+                translate([wall,cable_out_h - 20, cable_out_side_left_z - 8.5/2])
+                difference() {
+                        wedge(8.5,15,8);
+                        translate([7-2*delta,10,-1]) cube([11,15,13]);
+                }
 
                 // support for the top cable ziptie
                 translate([-3*wall, 0, ziptie2_z])
@@ -800,7 +817,7 @@ module left_panel() {
             translate([-delta, cable_out_h, cable_out_side_left_z]) {
                 translate([0,0, - cable_out_left_d/2]) cube([20,20,cable_out_left_d]);
                 rotate([ 0, 90, 0 ])
-                    cylinder(d = cable_out_left_d, h = 4*wall + 2 * delta);
+                    cylinder(d = cable_out_left_d, h = wall + 2 * delta);
             }
 
             // hook holes
@@ -820,19 +837,24 @@ module left_panel() {
 }
 
 module base() {
-    union() {
-        translate([0/*+snap_dt*/,0,0]) cube([width, /*depth+*/base_depth, height]);
+    difference() {
+        union() {
+            translate([0/*+snap_dt*/,0,0]) cube([width, /*depth+*/base_depth, height]);
 
-        translate([-10,0, mount_bottom_offset]) rotate([0,90,90]) mount3030();
-        translate([-10,0, mount_top_offset]) rotate([0,90,90]) mount3030();
+            translate([-10,0, mount_bottom_offset]) rotate([0,90,90]) mount3030();
+            translate([-10,0, mount_top_offset]) rotate([0,90,90]) mount3030();
 
-        // these rise the walls for holding the panel on both sides
-        /*translate([0,3,mount_bottom_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);
-        translate([0,3,mount_top_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);*/
+            // these rise the walls for holding the panel on both sides
+            /*translate([0,3,mount_bottom_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);
+              translate([0,3,mount_top_offset - profile])rotate([0,0,45]) cube([2*wall,2*wall,profile]);*/
 
-        // pillars for the arduino (china clone)
-        translate([mega_x, 3*wall-0.01, height-101.6+mega_y-8]) rotate([90,180,180]) mega_mount_holes();
+            // pillars for the arduino (china clone)
+            translate([mega_x, base_depth-0.01, height-101.6+mega_y-8]) rotate([90,180,180]) mega_mount_pillars();
+        }
+
+        translate([mega_x, base_depth-0.01, height-101.6+mega_y-8]) rotate([90,180,180]) mega_mount_holes();
     }
+
 }
 
 module mount3030(profile = 30) {
